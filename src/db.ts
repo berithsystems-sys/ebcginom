@@ -126,6 +126,21 @@ export const db = knex({
   }
 });
 
+// Error categorization for better user hints
+function getDBErrorHint(err: any): string {
+  if (err.code === 'ER_ACCESS_DENIED_ERROR') {
+    return `CRITICAL: Access Denied. Your MySQL server is rejecting the connection from IP 34.96.48.55. 
+    ACTION: Go to your Hosting Panel -> Remote MySQL and whitelist '34.96.48.55'.`;
+  }
+  if (err.code === 'ENOTFOUND' || err.code === 'EAI_AGAIN') {
+    return `CRITICAL: Host not found. Check if DB_HOST (${dbHost}) is correct. (e.g., mysql.hostinger.com)`;
+  }
+  if (err.code === 'ECONNREFUSED') {
+    return `CRITICAL: Connection Refused. Check if your DB_PORT (usually 3306) and DB_HOST are correct.`;
+  }
+  return 'Unknown DB Error. Check your environment variables.';
+}
+
 export async function initDB() {
   console.log(`Checking/Creating tables for client: ${db.client.config.client}...`);
   try {
@@ -293,8 +308,11 @@ export async function initDB() {
   } catch (e) {
     console.error("Migration failed:", e);
   }
-} catch (err) {
-  console.error("Critical DB Init Error:", err);
-  throw err;
-}
+  } catch (err: any) {
+    console.error("Critical DB Init Error:", err);
+    console.error("---------------------------------------------------------");
+    console.error(getDBErrorHint(err));
+    console.error("---------------------------------------------------------");
+    throw err;
+  }
 }
