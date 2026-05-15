@@ -98,12 +98,11 @@ const dbHost = process.env.DB_HOST;
 let dbClient = process.env.DB_CLIENT || 'better-sqlite3';
 
 // AI Studio environment check: default to better-sqlite3 if mysql2 isn't remote
-if (dbClient !== 'mysql2') {
-  dbClient = 'better-sqlite3';
-}
-
-// FORCE better-sqlite3 if host is localhost/127.0.0.1 in AI Studio environment
-if (dbClient === 'mysql2' && (!dbHost || dbHost === 'localhost' || dbHost === '127.0.0.1' || dbHost === '::1')) {
+if (dbClient === 'mysql2') {
+  if (!dbHost || dbHost === 'localhost' || dbHost === '127.0.0.1' || dbHost === '::1') {
+    dbClient = 'better-sqlite3';
+  }
+} else {
   dbClient = 'better-sqlite3';
 }
 
@@ -128,8 +127,10 @@ export const db = knex({
 });
 
 export async function initDB() {
-  // Branches
-  if (!(await db.schema.hasTable('branches'))) {
+  console.log(`Checking/Creating tables for client: ${db.client.config.client}...`);
+  try {
+    // Branches
+    if (!(await db.schema.hasTable('branches'))) {
     await db.schema.createTable('branches', (table) => {
       table.string('id').primary();
       table.string('code').notNullable();
@@ -292,4 +293,8 @@ export async function initDB() {
   } catch (e) {
     console.error("Migration failed:", e);
   }
+} catch (err) {
+  console.error("Critical DB Init Error:", err);
+  throw err;
+}
 }

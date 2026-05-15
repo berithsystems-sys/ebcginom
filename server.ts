@@ -381,13 +381,20 @@ async function startServer() {
 
   app.listen(PORT, HOST, async () => {
     console.log(`>>> Tally ERP Server is live on port ${PORT}`);
+    console.log(`>>> Outbound IP for DB Whitelisting: 34.96.48.55`);
 
     try {
-      console.log("Initializing database connection in background...");
+      console.log("Initializing database connection...");
       await initDB();
       console.log("Database initialized successfully.");
-    } catch (error) {
+    } catch (error: any) {
       console.error("DB Initialization Error:", error);
+      if (error.code === 'ER_ACCESS_DENIED_ERROR') {
+        console.error("---------------------------------------------------------");
+        console.error("CRITICAL: Your Remote MySQL server rejected the connection.");
+        console.error("ACTION REQUIRED: Whitelist this IP in your hosting panel (Remote MySQL): 34.96.48.55");
+        console.error("---------------------------------------------------------");
+      }
     }
   });
 }
